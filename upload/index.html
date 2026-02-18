@@ -11,24 +11,71 @@
     background: linear-gradient(180deg,#eef2ff,#f8fafc);
     margin: 0;
     padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
   }
 
+  /* Login Overlay */
+  #loginOverlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: #4f46e5;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    color: white;
+  }
+
+  #loginOverlay h2 { margin-bottom: 20px; }
+
+  #pinInput {
+    padding: 15px;
+    font-size: 24px;
+    width: 120px;
+    text-align: center;
+    border-radius: 12px;
+    border: none;
+    letter-spacing: 8px;
+    outline: none;
+    color: #1e293b;
+  }
+
+  /* Main Card */
   .card {
     max-width: 420px;
-    margin: auto;
+    width: 100%;
     background: #fff;
     border-radius: 16px;
     padding: 20px;
     box-shadow: 0 10px 30px rgba(0,0,0,.08);
+    display: none; /* Hidden until login */
   }
 
-  h2 {
-    text-align:center;
-    margin-bottom:18px;
-    font-weight:600;
+  h2 { text-align:center; margin-bottom:18px; font-weight:600; color: #1e293b; }
+
+  /* Input Fields */
+  .field-group { margin-top: 15px; }
+  
+  .input-field {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-sizing: border-box;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
   }
 
-  /* Upload */
+  .input-field:focus { border-color: #6366f1; }
+  textarea.input-field { height: 80px; resize: none; }
+
+  /* Upload Area */
   .upload {
     border:2px dashed #6366f1;
     border-radius:14px;
@@ -37,88 +84,38 @@
     cursor:pointer;
     background:#f1f5ff;
     display:block;
-    margin-bottom: 18px;
+    margin-bottom: 15px;
   }
 
-  .upload:hover {
-    background:#eef2ff;
-  }
+  .upload:hover { background:#eef2ff; }
+  .upload-icon { font-size:38px; margin-bottom:8px; }
+  .upload-title { font-weight:600; color:#4338ca; }
+  .upload-sub { font-size:13px; color:#64748b; }
+  .upload img { max-width:100%; border-radius:12px; margin-top:8px; }
 
-  .upload-icon {
-    font-size:38px;
-    margin-bottom:8px;
-  }
-
-  .upload-title {
-    font-weight:600;
-    color:#4338ca;
-  }
-
-  .upload-sub {
-    font-size:13px;
-    color:#64748b;
-  }
-
-  .upload img {
-    max-width:100%;
-    border-radius:12px;
-    margin-top:8px;
-  }
-
-  /* Form Inputs */
-  .input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 18px;
-  }
-
-  .input-field {
-    width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    font-size: 14px;
-    box-sizing: border-box;
-    transition: border-color 0.2s;
-    outline: none;
-  }
-
-  .input-field:focus {
-    border-color: #6366f1;
-  }
-
-  textarea.input-field {
-    resize: none;
-    font-family: inherit;
-  }
-
-  /* Platforms */
+  /* Platforms Grid */
   .platforms {
     display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
+    grid-template-columns:1fr 1fr 1fr; /* Adjusted for 3 buttons */
+    gap:10px;
     margin-top:18px;
   }
 
   .btn {
-    padding:13px;
-    border-radius:12px;
+    padding:10px;
+    border-radius:10px;
     border:1px solid #e2e8f0;
     background:#f8fafc;
     cursor:pointer;
     text-align:center;
+    font-size: 13px;
     font-weight:500;
     transition:.2s;
   }
 
-  .btn.active {
-    background:#4f46e5;
-    color:#fff;
-    border-color:#4f46e5;
-  }
+  .btn.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
 
-  /* Submit */
+  /* Submit Button */
   .submit {
     width:100%;
     margin-top:22px;
@@ -136,14 +133,10 @@
     cursor:pointer;
   }
 
-  .submit:disabled {
-    opacity:.7;
-    cursor:not-allowed;
-  }
+  .submit:disabled { opacity:.7; cursor:not-allowed; }
 
   .spinner {
-    width:18px;
-    height:18px;
+    width:18px; height:18px;
     border:3px solid rgba(255,255,255,.4);
     border-top:3px solid #fff;
     border-radius:50%;
@@ -151,9 +144,7 @@
     display:none;
   }
 
-  @keyframes spin {
-    to { transform:rotate(360deg); }
-  }
+  @keyframes spin { to { transform:rotate(360deg); } }
 
   .success {
     text-align:center;
@@ -166,8 +157,13 @@
 </head>
 
 <body>
-<div class="card">
 
+<div id="loginOverlay">
+  <h2>Enter PIN</h2>
+  <input type="password" id="pinInput" inputmode="numeric" maxlength="4" placeholder="****">
+</div>
+
+<div class="card" id="mainCard">
   <h2>Publish Image</h2>
 
   <label class="upload" for="imageInput">
@@ -178,16 +174,14 @@
     </div>
     <img id="preview" style="display:none;">
   </label>
-
   <input type="file" id="imageInput" accept="image/*" hidden>
 
-  <div class="input-group">
+  <div class="field-group">
     <input type="text" id="postTitle" class="input-field" placeholder="Post Title">
-    <textarea id="postDesc" class="input-field" placeholder="Post Description" rows="3"></textarea>
+    <textarea id="postDescription" class="input-field" placeholder="Description..."></textarea>
   </div>
 
   <div class="platforms">
-    
     <div class="btn" data-val="Facebook">Facebook</div>
     <div class="btn" data-val="Instagram">Instagram</div>
     <div class="btn" data-val="Google Business">Google</div>
@@ -199,15 +193,31 @@
   </button>
 
   <div class="success" id="successMsg">✔ Published successfully</div>
-
 </div>
 
 <script>
 const WEBHOOK="https://hook.eu2.make.com/nghulprotgpc40h8alcgkq9zjaj3s189";
+const CORRECT_PIN = "9876";
 
 let selectedPlatforms=[];
 let imageBase64=null;
 
+// Login Logic
+const loginOverlay = document.getElementById("loginOverlay");
+const pinInput = document.getElementById("pinInput");
+const mainCard = document.getElementById("mainCard");
+
+pinInput.addEventListener("input", (e) => {
+  if(e.target.value === CORRECT_PIN) {
+    loginOverlay.style.display = "none";
+    mainCard.style.display = "block";
+  } else if (e.target.value.length >= 4) {
+    alert("Incorrect PIN");
+    e.target.value = "";
+  }
+});
+
+// Form Elements
 const input=document.getElementById("imageInput");
 const preview=document.getElementById("preview");
 const uploadInfo=document.getElementById("uploadInfo");
@@ -215,16 +225,13 @@ const spinner=document.getElementById("spinner");
 const btn=document.getElementById("sendBtn");
 const btnText=document.getElementById("btnText");
 const successMsg=document.getElementById("successMsg");
-
-// New fields
-const titleInput = document.getElementById("postTitle");
-const descInput = document.getElementById("postDesc");
+const postTitle=document.getElementById("postTitle");
+const postDesc=document.getElementById("postDescription");
 
 /* Image select */
 input.onchange=e=>{
   const file=e.target.files[0];
   if(!file) return;
-
   const reader=new FileReader();
   reader.onload=()=>{
     imageBase64=reader.result;
@@ -240,7 +247,6 @@ document.querySelectorAll(".btn").forEach(b=>{
   b.onclick=()=>{
     b.classList.toggle("active");
     const val=b.dataset.val;
-
     if(selectedPlatforms.includes(val)){
       selectedPlatforms=selectedPlatforms.filter(p=>p!==val);
     } else {
@@ -251,24 +257,17 @@ document.querySelectorAll(".btn").forEach(b=>{
 
 /* Submit */
 btn.onclick=async()=>{
-  if(!imageBase64){
-    alert("Upload image");
-    return;
-  }
-
-  if(selectedPlatforms.length===0){
-    alert("Select platform");
-    return;
-  }
+  if(!imageBase64){ alert("Upload image"); return; }
+  if(selectedPlatforms.length===0){ alert("Select platform"); return; }
 
   spinner.style.display="block";
   btnText.textContent="Publishing...";
   btn.disabled=true;
 
-  // Added title and description to the payload
+  // Payload now includes Title and Description
   const payload={
-    title: titleInput.value,
-    description: descInput.value,
+    title: postTitle.value,
+    description: postDesc.value,
     platforms: selectedPlatforms,
     images: [imageBase64]
   };
@@ -276,14 +275,11 @@ btn.onclick=async()=>{
   try{
     await fetch(WEBHOOK,{
       method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      },
+      headers:{ "Content-Type":"application/json" },
       body:JSON.stringify(payload)
     });
 
     successMsg.style.display="block";
-
     setTimeout(()=>location.reload(),1200);
 
   }catch(e){
