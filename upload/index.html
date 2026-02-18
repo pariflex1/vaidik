@@ -17,69 +17,57 @@
     min-height: 100vh;
   }
 
-  /* Login Overlay */
-  #loginOverlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: #4f46e5;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
-    color: white;
-  }
-
-  #loginOverlay h2 { margin-bottom: 20px; }
-
-  #pinInput {
-    padding: 15px;
-    font-size: 24px;
-    width: 120px;
-    text-align: center;
-    border-radius: 12px;
-    border: none;
-    letter-spacing: 8px;
-    outline: none;
-    color: #1e293b;
-  }
-
-  /* Main Card */
   .card {
     max-width: 420px;
     width: 100%;
     background: #fff;
     border-radius: 16px;
-    padding: 20px;
+    padding: 24px;
     box-shadow: 0 10px 30px rgba(0,0,0,.08);
     display: none; /* Hidden until login */
   }
 
-  h2 { text-align:center; margin-bottom:18px; font-weight:600; color: #1e293b; }
+  /* Login Screen */
+  #loginScreen {
+    max-width: 320px;
+    text-align: center;
+    background: #fff;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.08);
+  }
 
-  /* Input Fields */
-  .field-group { margin-top: 15px; }
-  
+  .pin-input {
+    width: 100%;
+    font-size: 24px;
+    text-align: center;
+    letter-spacing: 10px;
+    padding: 10px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    margin: 15px 0;
+    outline: none;
+  }
+
+  h2 { text-align:center; margin-bottom:18px; font-weight:600; }
+
+  /* Form Fields */
+  .input-group { margin-bottom: 15px; }
+  .input-group label { display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 5px; }
   .input-field {
     width: 100%;
     padding: 12px;
-    margin-top: 8px;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     box-sizing: border-box;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s;
+    font-family: inherit;
   }
 
-  .input-field:focus { border-color: #6366f1; }
-  textarea.input-field { height: 80px; resize: none; }
-
-  /* Upload Area */
+  /* Upload */
   .upload {
     border:2px dashed #6366f1;
     border-radius:14px;
-    padding:24px 16px;
+    padding:20px;
     text-align:center;
     cursor:pointer;
     background:#f1f5ff;
@@ -87,38 +75,35 @@
     margin-bottom: 15px;
   }
 
-  .upload:hover { background:#eef2ff; }
-  .upload-icon { font-size:38px; margin-bottom:8px; }
+  .upload-icon { font-size:30px; }
   .upload-title { font-weight:600; color:#4338ca; }
-  .upload-sub { font-size:13px; color:#64748b; }
   .upload img { max-width:100%; border-radius:12px; margin-top:8px; }
 
-  /* Platforms Grid */
+  /* Platforms */
   .platforms {
     display:grid;
-    grid-template-columns:1fr 1fr 1fr; /* Adjusted for 3 buttons */
+    grid-template-columns: 1fr 1fr;
     gap:10px;
-    margin-top:18px;
+    margin-top:15px;
   }
 
   .btn {
-    padding:10px;
+    padding:12px;
     border-radius:10px;
     border:1px solid #e2e8f0;
     background:#f8fafc;
     cursor:pointer;
     text-align:center;
-    font-size: 13px;
+    font-size: 14px;
     font-weight:500;
-    transition:.2s;
   }
 
   .btn.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
 
-  /* Submit Button */
+  /* Submit */
   .submit {
     width:100%;
-    margin-top:22px;
+    margin-top:20px;
     padding:15px;
     border:none;
     border-radius:14px;
@@ -126,17 +111,18 @@
     color:#fff;
     font-size:16px;
     font-weight:600;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
     cursor:pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
   }
 
   .submit:disabled { opacity:.7; cursor:not-allowed; }
 
   .spinner {
-    width:18px; height:18px;
+    width:18px;
+    height:18px;
     border:3px solid rgba(255,255,255,.4);
     border-top:3px solid #fff;
     border-radius:50%;
@@ -145,46 +131,44 @@
   }
 
   @keyframes spin { to { transform:rotate(360deg); } }
-
-  .success {
-    text-align:center;
-    color:#16a34a;
-    margin-top:12px;
-    display:none;
-    font-weight:600;
-  }
+  .success { text-align:center; color:#16a34a; margin-top:12px; display:none; font-weight:600; }
 </style>
 </head>
-
 <body>
 
-<div id="loginOverlay">
+<div id="loginScreen">
   <h2>Enter PIN</h2>
-  <input type="password" id="pinInput" inputmode="numeric" maxlength="4" placeholder="****">
+  <input type="password" id="pinCode" class="pin-input" maxlength="4" placeholder="****">
+  <p id="loginError" style="color:red; font-size:12px; display:none;">Incorrect PIN</p>
 </div>
 
 <div class="card" id="mainCard">
   <h2>Publish Image</h2>
 
+  <div class="input-group">
+    <label>Post Title</label>
+    <input type="text" id="postTitle" class="input-field" placeholder="Enter title...">
+  </div>
+
+  <div class="input-group">
+    <label>Description</label>
+    <textarea id="postDesc" class="input-field" rows="3" placeholder="Write something..."></textarea>
+  </div>
+
   <label class="upload" for="imageInput">
     <div id="uploadInfo">
       <div class="upload-icon">📷</div>
       <div class="upload-title">Upload Image</div>
-      <div class="upload-sub">Tap to choose photo</div>
     </div>
     <img id="preview" style="display:none;">
   </label>
   <input type="file" id="imageInput" accept="image/*" hidden>
 
-  <div class="field-group">
-    <input type="text" id="postTitle" class="input-field" placeholder="Post Title">
-    <textarea id="postDescription" class="input-field" placeholder="Description..."></textarea>
-  </div>
-
   <div class="platforms">
     <div class="btn" data-val="Facebook">Facebook</div>
     <div class="btn" data-val="Instagram">Instagram</div>
     <div class="btn" data-val="Google Business">Google</div>
+    <div class="btn" data-val="Twitter">X (Twitter)</div>
   </div>
 
   <button class="submit" id="sendBtn">
@@ -196,100 +180,115 @@
 </div>
 
 <script>
-const WEBHOOK="https://hook.eu2.make.com/nghulprotgpc40h8alcgkq9zjaj3s189";
+const WEBHOOK = "https://hook.eu2.make.com/nghulprotgpc40h8alcgkq9zjaj3s189";
 const CORRECT_PIN = "9876";
 
-let selectedPlatforms=[];
-let imageBase64=null;
-
-// Login Logic
-const loginOverlay = document.getElementById("loginOverlay");
-const pinInput = document.getElementById("pinInput");
+// Elements
+const loginScreen = document.getElementById("loginScreen");
 const mainCard = document.getElementById("mainCard");
+const pinInput = document.getElementById("pinCode");
+const loginError = document.getElementById("loginError");
 
-pinInput.addEventListener("input", (e) => {
-  if(e.target.value === CORRECT_PIN) {
-    loginOverlay.style.display = "none";
-    mainCard.style.display = "block";
-  } else if (e.target.value.length >= 4) {
-    alert("Incorrect PIN");
-    e.target.value = "";
+/* Login Logic (1 Week Persistence) */
+function checkAuth() {
+  const expiry = localStorage.getItem("loginExpiry");
+  if (expiry && Date.now() < expiry) {
+    showApp();
+  }
+}
+
+function showApp() {
+  loginScreen.style.display = "none";
+  mainCard.style.display = "block";
+}
+
+pinInput.addEventListener("input", () => {
+  if (pinInput.value === CORRECT_PIN) {
+    const sevenDays = Date.now() + (7 * 24 * 60 * 60 * 1000);
+    localStorage.setItem("loginExpiry", sevenDays);
+    showApp();
+  } else if (pinInput.value.length === 4) {
+    loginError.style.display = "block";
+    pinInput.value = "";
   }
 });
 
-// Form Elements
-const input=document.getElementById("imageInput");
-const preview=document.getElementById("preview");
-const uploadInfo=document.getElementById("uploadInfo");
-const spinner=document.getElementById("spinner");
-const btn=document.getElementById("sendBtn");
-const btnText=document.getElementById("btnText");
-const successMsg=document.getElementById("successMsg");
-const postTitle=document.getElementById("postTitle");
-const postDesc=document.getElementById("postDescription");
+checkAuth();
 
-/* Image select */
-input.onchange=e=>{
-  const file=e.target.files[0];
+/* Form Logic */
+let selectedPlatforms = [];
+let imageBase64 = null;
+
+const input = document.getElementById("imageInput");
+const preview = document.getElementById("preview");
+const uploadInfo = document.getElementById("uploadInfo");
+const spinner = document.getElementById("spinner");
+const btn = document.getElementById("sendBtn");
+const btnText = document.getElementById("btnText");
+const successMsg = document.getElementById("successMsg");
+
+input.onchange = e => {
+  const file = e.target.files[0];
   if(!file) return;
-  const reader=new FileReader();
-  reader.onload=()=>{
-    imageBase64=reader.result;
-    preview.src=imageBase64;
-    preview.style.display="block";
-    uploadInfo.style.display="none";
+  const reader = new FileReader();
+  reader.onload = () => {
+    imageBase64 = reader.result;
+    preview.src = imageBase64;
+    preview.style.display = "block";
+    uploadInfo.style.display = "none";
   };
   reader.readAsDataURL(file);
 };
 
-/* Platform toggle */
-document.querySelectorAll(".btn").forEach(b=>{
-  b.onclick=()=>{
+document.querySelectorAll(".btn").forEach(b => {
+  b.onclick = () => {
     b.classList.toggle("active");
-    const val=b.dataset.val;
-    if(selectedPlatforms.includes(val)){
-      selectedPlatforms=selectedPlatforms.filter(p=>p!==val);
+    const val = b.dataset.val;
+    if(selectedPlatforms.includes(val)) {
+      selectedPlatforms = selectedPlatforms.filter(p => p !== val);
     } else {
       selectedPlatforms.push(val);
     }
   };
 });
 
-/* Submit */
-btn.onclick=async()=>{
-  if(!imageBase64){ alert("Upload image"); return; }
-  if(selectedPlatforms.length===0){ alert("Select platform"); return; }
+btn.onclick = async () => {
+  const title = document.getElementById("postTitle").value;
+  const desc = document.getElementById("postDesc").value;
 
-  spinner.style.display="block";
-  btnText.textContent="Publishing...";
-  btn.disabled=true;
+  if(!imageBase64 || selectedPlatforms.length === 0) {
+    alert("Please upload an image and select at least one platform.");
+    return;
+  }
 
-  // Payload now includes Title and Description
-  const payload={
-    title: postTitle.value,
-    description: postDesc.value,
+  spinner.style.display = "block";
+  btnText.textContent = "Publishing...";
+  btn.disabled = true;
+
+  const payload = {
+    title: title,
+    description: desc,
     platforms: selectedPlatforms,
     images: [imageBase64]
   };
 
-  try{
-    await fetch(WEBHOOK,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify(payload)
+  try {
+    await fetch(WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
     });
-
-    successMsg.style.display="block";
-    setTimeout(()=>location.reload(),1200);
-
-  }catch(e){
+    successMsg.style.display = "block";
+    setTimeout(() => location.reload(), 2000);
+  } catch(e) {
     alert("Error sending");
-    spinner.style.display="none";
-    btnText.textContent="Publish";
-    btn.disabled=false;
+    spinner.style.display = "none";
+    btnText.textContent = "Publish";
+    btn.disabled = false;
   }
 };
 </script>
 
 </body>
-</html>
+        </html>
+  
