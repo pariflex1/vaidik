@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Image Publisher</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
 
 <style>
   body {
@@ -24,10 +25,9 @@
     border-radius: 16px;
     padding: 24px;
     box-shadow: 0 10px 30px rgba(0,0,0,.08);
-    display: none; /* Hidden until login */
+    display: none;
   }
 
-  /* Login Screen */
   #loginScreen {
     max-width: 320px;
     text-align: center;
@@ -47,11 +47,11 @@
     border-radius: 12px;
     margin: 15px 0;
     outline: none;
+    box-sizing: border-box;
   }
 
   h2 { text-align:center; margin-bottom:18px; font-weight:600; }
 
-  /* Form Fields */
   .input-group { margin-bottom: 15px; }
   .input-group label { display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 5px; }
   .input-field {
@@ -63,7 +63,6 @@
     font-family: inherit;
   }
 
-  /* Upload */
   .upload {
     border:2px dashed #6366f1;
     border-radius:14px;
@@ -79,7 +78,6 @@
   .upload-title { font-weight:600; color:#4338ca; }
   .upload img { max-width:100%; border-radius:12px; margin-top:8px; }
 
-  /* Platforms */
   .platforms {
     display:grid;
     grid-template-columns: 1fr 1fr;
@@ -100,7 +98,6 @@
 
   .btn.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
 
-  /* Submit */
   .submit {
     width:100%;
     margin-top:20px;
@@ -162,7 +159,7 @@
     </div>
     <img id="preview" style="display:none;">
   </label>
-  <input type="file" id="imageInput" accept="image/*" hidden>
+  <input type="file" id="imageInput" accept="image/*,.heic,.heif,.HEIC,.HEIF" hidden>
 
   <div class="platforms">
     <div class="btn" data-val="Facebook">Facebook</div>
@@ -183,68 +180,116 @@
 const WEBHOOK = "https://hook.eu2.make.com/nghulprotgpc40h8alcgkq9zjaj3s189";
 const CORRECT_PIN = "9876";
 
-// Elements
 const loginScreen = document.getElementById("loginScreen");
-const mainCard = document.getElementById("mainCard");
-const pinInput = document.getElementById("pinCode");
-const loginError = document.getElementById("loginError");
+const mainCard    = document.getElementById("mainCard");
+const pinInput    = document.getElementById("pinCode");
+const loginError  = document.getElementById("loginError");
 
-/* Login Logic (1 Week Persistence) */
-function checkAuth() {
-  const expiry = localStorage.getItem("loginExpiry");
-  if (expiry && Date.now() < expiry) {
-    showApp();
+/* ── Auth helpers ── */
+function getExpiry() {
+  try {
+    return parseInt(localStorage.getItem("loginExpiry"), 10) || 0;
+  } catch (e) {
+    return 0;
   }
+}
+
+function setExpiry() {
+  try {
+    localStorage.setItem("loginExpiry", Date.now() + 7 * 24 * 60 * 60 * 1000);
+  } catch (e) { /* storage unavailable – session-only login */ }
 }
 
 function showApp() {
   loginScreen.style.display = "none";
-  mainCard.style.display = "block";
+  mainCard.style.display    = "block";
 }
 
+/* Check saved session on load */
+if (Date.now() < getExpiry()) {
+  showApp();
+}
+
+/* PIN input handler */
 pinInput.addEventListener("input", () => {
+  loginError.style.display = "none"; // hide previous error while typing
+
+  if (pinInput.value.length < 4) return;
+
   if (pinInput.value === CORRECT_PIN) {
-    const sevenDays = Date.now() + (7 * 24 * 60 * 60 * 1000);
-    localStorage.setItem("loginExpiry", sevenDays);
+    setExpiry();
     showApp();
-  } else if (pinInput.value.length === 4) {
+  } else {
     loginError.style.display = "block";
     pinInput.value = "";
   }
 });
 
-checkAuth();
-
-/* Form Logic */
+/* ── Form logic ── */
 let selectedPlatforms = [];
 let imageBase64 = null;
 
-const input = document.getElementById("imageInput");
-const preview = document.getElementById("preview");
+const input      = document.getElementById("imageInput");
+const preview    = document.getElementById("preview");
 const uploadInfo = document.getElementById("uploadInfo");
-const spinner = document.getElementById("spinner");
-const btn = document.getElementById("sendBtn");
-const btnText = document.getElementById("btnText");
+const spinner    = document.getElementById("spinner");
+const btn        = document.getElementById("sendBtn");
+const btnText    = document.getElementById("btnText");
 const successMsg = document.getElementById("successMsg");
 
-input.onchange = e => {
+/* Convert any image blob/file to JPG base64 via Canvas */
+function blobToJpgBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width  = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext("2d").drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.92));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Image load failed")); };
+    img.src = url;
+  });
+}
+
+input.onchange = async e => {
   const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    imageBase64 = reader.result;
+  if (!file) return;
+
+  uploadInfo.innerHTML = `<div class="upload-icon">⏳</div><div class="upload-title">Converting...</div>`;
+
+  try {
+    let blob = file;
+    const isHeic = file.type === "image/heic" || file.type === "image/heif" ||
+                   /\.(heic|heif)$/i.test(file.name);
+
+    if (isHeic) {
+      // Convert HEIC → JPEG blob using heic2any
+      blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.92 });
+      // heic2any may return an array
+      if (Array.isArray(blob)) blob = blob[0];
+    }
+
+    imageBase64 = await blobToJpgBase64(blob);
     preview.src = imageBase64;
-    preview.style.display = "block";
+    preview.style.display    = "block";
     uploadInfo.style.display = "none";
-  };
-  reader.readAsDataURL(file);
+
+  } catch (err) {
+    console.error(err);
+    alert("Could not process this image. Please try another file.");
+    uploadInfo.innerHTML = `<div class="upload-icon">📷</div><div class="upload-title">Upload Image</div>`;
+  }
 };
 
 document.querySelectorAll(".btn").forEach(b => {
   b.onclick = () => {
     b.classList.toggle("active");
     const val = b.dataset.val;
-    if(selectedPlatforms.includes(val)) {
+    if (selectedPlatforms.includes(val)) {
       selectedPlatforms = selectedPlatforms.filter(p => p !== val);
     } else {
       selectedPlatforms.push(val);
@@ -254,19 +299,19 @@ document.querySelectorAll(".btn").forEach(b => {
 
 btn.onclick = async () => {
   const title = document.getElementById("postTitle").value;
-  const desc = document.getElementById("postDesc").value;
+  const desc  = document.getElementById("postDesc").value;
 
-  if(!imageBase64 || selectedPlatforms.length === 0) {
+  if (!imageBase64 || selectedPlatforms.length === 0) {
     alert("Please upload an image and select at least one platform.");
     return;
   }
 
   spinner.style.display = "block";
-  btnText.textContent = "Publishing...";
-  btn.disabled = true;
+  btnText.textContent   = "Publishing...";
+  btn.disabled          = true;
 
   const payload = {
-    title: title,
+    title,
     description: desc,
     platforms: selectedPlatforms,
     images: [imageBase64]
@@ -280,15 +325,14 @@ btn.onclick = async () => {
     });
     successMsg.style.display = "block";
     setTimeout(() => location.reload(), 2000);
-  } catch(e) {
-    alert("Error sending");
+  } catch (e) {
+    alert("Error sending. Please try again.");
     spinner.style.display = "none";
-    btnText.textContent = "Publish";
-    btn.disabled = false;
+    btnText.textContent   = "Publish";
+    btn.disabled          = false;
   }
 };
 </script>
 
 </body>
-        </html>
-  
+</html>
