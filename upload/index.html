@@ -140,19 +140,9 @@
 </div>
 
 <div class="card" id="mainCard">
-  <h2>Publish Image</h2>
+  <h2>The Curve Consultants Publish Image</h2>
 
-  <div class="input-group">
-    <label>Post Title</label>
-    <input type="text" id="postTitle" class="input-field" placeholder="Enter title...">
-  </div>
-
-  <div class="input-group">
-    <label>Description</label>
-    <textarea id="postDesc" class="input-field" rows="3" placeholder="Write something..."></textarea>
-  </div>
-
-  <label class="upload" for="imageInput">
+ <label class="upload" for="imageInput">
     <div id="uploadInfo">
       <div class="upload-icon">📷</div>
       <div class="upload-title">Upload Image</div>
@@ -161,24 +151,36 @@
   </label>
   <input type="file" id="imageInput" accept="image/*,.heic,.heif,.HEIC,.HEIF" hidden>
 
-  <div class="platforms">
-    <div class="btn" data-val="Facebook">Facebook</div>
-    <div class="btn" data-val="Instagram">Instagram</div>
-    <div class="btn" data-val="Google Business">Google</div>
-    <div class="btn" data-val="Twitter">X (Twitter)</div>
-  </div>
+<input type="hidden" id="website" name="website" value="Vaidik">
 
-  <button class="submit" id="sendBtn">
-    <div class="spinner" id="spinner"></div>
-    <span id="btnText">Publish</span>
-  </button>
+<div class="input-group">
+  <label>Post Title</label>
+  <input type="text" id="postTitle" class="input-field" placeholder="Enter title...">
+</div>
+
+<div class="input-group">
+  <label>Description</label>
+  <textarea id="postDesc" class="input-field" rows="3" placeholder="Write something..."></textarea>
+</div>
+
+<div class="platforms">
+  <div class="btn" data-val="Facebook">Facebook</div>
+  <div class="btn" data-val="Instagram">Instagram</div>
+  <div class="btn" data-val="Google Business">Google</div>
+  <div class="btn" data-val="Linkedin">Linkedin</div>
+</div>
+
+<button class="submit" id="sendBtn">
+  <div class="spinner" id="spinner"></div>
+  <span id="btnText">Publish</span>
+</button>
 
   <div class="success" id="successMsg">✔ Published successfully</div>
 </div>
 
 <script>
-const WEBHOOK = "https://hook.eu2.make.com/nghulprotgpc40h8alcgkq9zjaj3s189";
-const CORRECT_PIN = "9876";
+const WEBHOOK = "https://n8n.jhansiproperty.com/webhook-test/thecurve";
+const CORRECT_PIN = "4444";
 
 const loginScreen = document.getElementById("loginScreen");
 const mainCard    = document.getElementById("mainCard");
@@ -187,17 +189,13 @@ const loginError  = document.getElementById("loginError");
 
 /* ── Auth helpers ── */
 function getExpiry() {
-  try {
-    return parseInt(localStorage.getItem("loginExpiry"), 10) || 0;
-  } catch (e) {
-    return 0;
-  }
+  try { return parseInt(localStorage.getItem("loginExpiry"), 10) || 0; }
+  catch (e) { return 0; }
 }
 
 function setExpiry() {
-  try {
-    localStorage.setItem("loginExpiry", Date.now() + 7 * 24 * 60 * 60 * 1000);
-  } catch (e) { /* storage unavailable – session-only login */ }
+  try { localStorage.setItem("loginExpiry", Date.now() + 7 * 24 * 60 * 60 * 1000); }
+  catch (e) { /* storage unavailable – session-only login */ }
 }
 
 function showApp() {
@@ -205,29 +203,18 @@ function showApp() {
   mainCard.style.display    = "block";
 }
 
-/* Check saved session on load */
-if (Date.now() < getExpiry()) {
-  showApp();
-}
+if (Date.now() < getExpiry()) showApp();
 
-/* PIN input handler */
 pinInput.addEventListener("input", () => {
-  loginError.style.display = "none"; // hide previous error while typing
-
+  loginError.style.display = "none";
   if (pinInput.value.length < 4) return;
-
-  if (pinInput.value === CORRECT_PIN) {
-    setExpiry();
-    showApp();
-  } else {
-    loginError.style.display = "block";
-    pinInput.value = "";
-  }
+  if (pinInput.value === CORRECT_PIN) { setExpiry(); showApp(); }
+  else { loginError.style.display = "block"; pinInput.value = ""; }
 });
 
 /* ── Form logic ── */
 let selectedPlatforms = [];
-let imageBase64 = null;
+let imageBlob = null;        // ← store Blob instead of base64
 
 const input      = document.getElementById("imageInput");
 const preview    = document.getElementById("preview");
@@ -236,24 +223,6 @@ const spinner    = document.getElementById("spinner");
 const btn        = document.getElementById("sendBtn");
 const btnText    = document.getElementById("btnText");
 const successMsg = document.getElementById("successMsg");
-
-/* Convert any image blob/file to JPG base64 via Canvas */
-function blobToJpgBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width  = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      canvas.getContext("2d").drawImage(img, 0, 0);
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.92));
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Image load failed")); };
-    img.src = url;
-  });
-}
 
 input.onchange = async e => {
   const file = e.target.files[0];
@@ -267,14 +236,16 @@ input.onchange = async e => {
                    /\.(heic|heif)$/i.test(file.name);
 
     if (isHeic) {
-      // Convert HEIC → JPEG blob using heic2any
       blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.92 });
-      // heic2any may return an array
       if (Array.isArray(blob)) blob = blob[0];
     }
 
-    imageBase64 = await blobToJpgBase64(blob);
-    preview.src = imageBase64;
+    // ── KEY CHANGE: keep the Blob for binary upload ──
+    imageBlob = new File([blob], "image.jpg", { type: "image/jpeg" });
+
+    // Show preview using object URL (no base64 needed for display)
+    const previewUrl = URL.createObjectURL(imageBlob);
+    preview.src = previewUrl;
     preview.style.display    = "block";
     uploadInfo.style.display = "none";
 
@@ -301,7 +272,7 @@ btn.onclick = async () => {
   const title = document.getElementById("postTitle").value;
   const desc  = document.getElementById("postDesc").value;
 
-  if (!imageBase64 || selectedPlatforms.length === 0) {
+  if (!imageBlob || selectedPlatforms.length === 0) {
     alert("Please upload an image and select at least one platform.");
     return;
   }
@@ -310,18 +281,22 @@ btn.onclick = async () => {
   btnText.textContent   = "Publishing...";
   btn.disabled          = true;
 
-  const payload = {
-    title,
-    description: desc,
-    platforms: selectedPlatforms,
-    images: [imageBase64]
-  };
+  // ── KEY CHANGE: use FormData so n8n receives a real binary file ──
+  const website = document.getElementById("website").value;
+
+const formData = new FormData();
+formData.append("title", title);
+formData.append("description", desc);
+formData.append("platforms", JSON.stringify(selectedPlatforms));
+formData.append("website", website);   // ✅ hidden field sent
+formData.append("image", imageBlob, "image.jpg");
 
   try {
     await fetch(WEBHOOK, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      // Do NOT set Content-Type header — browser sets it automatically
+      // with the correct multipart boundary when using FormData
+      body: formData
     });
     successMsg.style.display = "block";
     setTimeout(() => location.reload(), 2000);
