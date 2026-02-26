@@ -179,7 +179,10 @@
 </div>
 
 <script>
-const WEBHOOK = "https://n8n.jhansiproperty.com/webhook/image";
+// --- WEBHOOK CONFIGURATION ---
+const WEBHOOK_MAKE = "https://hook.eu2.make.com/nghulprotgpc40h8alcgkq9zjaj3s189";
+const WEBHOOK_N8N  = "https://n8n.jhansiproperty.com/webhook-test/image";
+
 const CORRECT_PIN = "4444";
 
 const loginScreen = document.getElementById("loginScreen");
@@ -195,7 +198,7 @@ function getExpiry() {
 
 function setExpiry() {
   try { localStorage.setItem("loginExpiry", Date.now() + 7 * 24 * 60 * 60 * 1000); }
-  catch (e) { /* storage unavailable – session-only login */ }
+  catch (e) { /* storage unavailable */ }
 }
 
 function showApp() {
@@ -214,7 +217,7 @@ pinInput.addEventListener("input", () => {
 
 /* ── Form logic ── */
 let selectedPlatforms = [];
-let imageBlob = null;        // ← store Blob instead of base64
+let imageBlob = null;        
 
 const input      = document.getElementById("imageInput");
 const preview    = document.getElementById("preview");
@@ -240,10 +243,7 @@ input.onchange = async e => {
       if (Array.isArray(blob)) blob = blob[0];
     }
 
-    // ── KEY CHANGE: keep the Blob for binary upload ──
     imageBlob = new File([blob], "image.jpg", { type: "image/jpeg" });
-
-    // Show preview using object URL (no base64 needed for display)
     const previewUrl = URL.createObjectURL(imageBlob);
     preview.src = previewUrl;
     preview.style.display    = "block";
@@ -251,7 +251,7 @@ input.onchange = async e => {
 
   } catch (err) {
     console.error(err);
-    alert("Could not process this image. Please try another file.");
+    alert("Could not process image.");
     uploadInfo.innerHTML = `<div class="upload-icon">📷</div><div class="upload-title">Upload Image</div>`;
   }
 };
@@ -271,6 +271,7 @@ document.querySelectorAll(".btn").forEach(b => {
 btn.onclick = async () => {
   const title = document.getElementById("postTitle").value;
   const desc  = document.getElementById("postDesc").value;
+  const website = document.getElementById("website").value;
 
   if (!imageBlob || selectedPlatforms.length === 0) {
     alert("Please upload an image and select at least one platform.");
@@ -281,27 +282,25 @@ btn.onclick = async () => {
   btnText.textContent   = "Publishing...";
   btn.disabled          = true;
 
-  // ── KEY CHANGE: use FormData so n8n receives a real binary file ──
-  const website = document.getElementById("website").value;
-
-const formData = new FormData();
-formData.append("title", title);
-formData.append("description", desc);
-formData.append("platforms", JSON.stringify(selectedPlatforms));
-formData.append("website", website);   // ✅ hidden field sent
-formData.append("image", imageBlob, "image.jpg");
+  const formData = new FormData();
+  formData.append("title", title);
+  formData.append("description", desc);
+  formData.append("platforms", JSON.stringify(selectedPlatforms));
+  formData.append("website", website);
+  formData.append("image", imageBlob, "image.jpg");
 
   try {
-    await fetch(WEBHOOK, {
-      method: "POST",
-      // Do NOT set Content-Type header — browser sets it automatically
-      // with the correct multipart boundary when using FormData
-      body: formData
-    });
+    // SEND TO BOTH WEBHOOKS AT ONCE
+    await Promise.all([
+      fetch(WEBHOOK_MAKE, { method: "POST", body: formData }),
+      fetch(WEBHOOK_N8N, { method: "POST", body: formData })
+    ]);
+
     successMsg.style.display = "block";
     setTimeout(() => location.reload(), 2000);
   } catch (e) {
-    alert("Error sending. Please try again.");
+    console.error(e);
+    alert("Error sending. Check internet or console for details.");
     spinner.style.display = "none";
     btnText.textContent   = "Publish";
     btn.disabled          = false;
